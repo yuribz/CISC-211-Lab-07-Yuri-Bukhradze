@@ -58,17 +58,13 @@ static uint8_t uartTxBuffer[MAX_PRINT_LEN] = {0};
 // the following array defines pairs of values (dividend, divisor) for test
 // inputs to the assembly function
 // tc stands for test case
-static uint32_t tc[][2] = {
-    {         29,          5}, // normal case, no errs
-    {          1,          1}, // check for handling 0 as a result for mod
-    {         25,          5}, // check for handling 0 as a result for mod
-    {          0,          0}, // test with both inputs 0
-    { 3000000000,    1000000}, // big numbers! (checks to see if using unsigned compares)
-    {    1000000, 3000000000}, // big numbers! (checks to see if using unsigned compares)
-    {          0,          5}, // test with a 0 input
-    {          5,          0}, // test with a 0 input
-    {      65534,         11}, // normal case, no errs
-    {          1,          5} // check for correct integer division result
+static uint32_t tc[] = {
+    0x80018002, // test case 0
+    0x7FFF7FF0, // test case 0
+    0x00000000, // test case 0
+    0x700EF00A, // test case 0
+    0xAAAA5555 // test case 0
+    
 };
 
 static char * pass = "PASS";
@@ -83,14 +79,11 @@ static char * fail = "FAIL";
 //
 // Function signature
 // for this lab, the function takes one arg (amount), and returns the balance
-extern uint32_t asmFunc(uint32_t, uint32_t);
+extern uint32_t asmFunc(uint32_t);
 
 
-extern uint32_t dividend;
-extern uint32_t divisor;
-extern uint32_t quotient;
-extern uint32_t mod;
-extern uint32_t we_have_a_problem;
+extern uint32_t a_value;
+extern uint32_t b_value;
 
 
 // set this to 0 if using the simulator. BUT note that the simulator
