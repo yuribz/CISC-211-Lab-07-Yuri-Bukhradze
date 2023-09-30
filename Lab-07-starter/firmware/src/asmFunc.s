@@ -10,22 +10,16 @@
  
 /* define and initialize global variables that C can access */
 
-.global dividend,divisor,quotient,mod,we_have_a_problem
-.type dividend,%gnu_unique_object
-.type divisor,%gnu_unique_object
-.type quotient,%gnu_unique_object
-.type mod,%gnu_unique_object
-.type we_have_a_problem,%gnu_unique_object
+.global a_value,b_value
+.type a_value,%gnu_unique_object
+.type b_value,%gnu_unique_object
 
 /* NOTE! These are only initialized ONCE, right before the program runs.
  * If you want these to be 0 every time asmFunc gets called, you must set
  * them to 0 at the start of your code!
  */
-dividend:          .word     0  
-divisor:           .word     0  
-quotient:          .word     0  
-mod:               .word     0 
-we_have_a_problem: .word     0
+a_value:          .word     0  
+b_value:           .word     0  
 
  /* Tell the assembler that what follows is in instruction memory    */
 .text
