@@ -59,12 +59,12 @@ static uint8_t uartTxBuffer[MAX_PRINT_LEN] = {0};
 // inputs to the assembly function
 // tc stands for test case
 static uint32_t tc[] = {
-    0x80018002, // test case 0
-    0x7FFF7FF0, // test case 0
-    0x00000000, // test case 0
-    0x700EF00A, // test case 0
-    0xAAAA5555 // test case 0
-    
+    0x80018002, // test case 0: -,-
+    0x7EEE7FF0, // test case 1: +,+
+    0x00000000, // test case 2: 0,0
+    0x700EF00A, // test case 3: +,-
+    0xAAAA5555, // test case 4: -,+
+    0x00020003  // test case 5: +,+
 };
 
 static char * pass = "PASS";
