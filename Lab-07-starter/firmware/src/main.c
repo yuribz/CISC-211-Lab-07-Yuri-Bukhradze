@@ -114,8 +114,8 @@ static void printGlobalAddresses(void)
     // build the string to be sent out over the serial lines
     snprintf((char*)uartTxBuffer, MAX_PRINT_LEN,
             "========= GLOBAL VARIABLES MEMORY ADDRESS LIST\r\n"
-            "global variable \"a_value\" stored at address:          0x%" PRIXPTR "\r\n"
-            "global variable \"b_value\" stored at address:           0x%" PRIXPTR "\r\n"
+            "global variable \"a_value\" stored at address:  0x%" PRIXPTR "\r\n"
+            "global variable \"b_value\" stored at address:  0x%" PRIXPTR "\r\n"
             "========= END -- GLOBAL VARIABLES MEMORY ADDRESS LIST\r\n"
             "\r\n",
             (uintptr_t)(&a_value), 
@@ -135,6 +135,33 @@ static void printGlobalAddresses(void)
 #endif
 }
 
+// print ints
+static void printInts(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
+{
+    // build the string to be sent out over the serial lines
+    snprintf((char*)uartTxBuffer, MAX_PRINT_LEN,
+            "========= DEBUG VARIABLE LIST\r\n"
+            "\"a1\": %8lu\r\n"
+            "\"a2\": %8lu\r\n"
+            "\"a3\": %8lu\r\n"
+            "\"a4\": %8lu\r\n"
+            "========= END -- DEBUG VARIABLE ADDRESS LIST\r\n"
+            "\r\n",
+            a1,a2,a3,a4 
+            ); 
+    isRTCExpired = false;
+    isUSARTTxComplete = false;
+
+#if USING_HW 
+    DMAC_ChannelTransfer(DMAC_CHANNEL_0, uartTxBuffer, \
+        (const void *)&(SERCOM5_REGS->USART_INT.SERCOM_DATA), \
+        strlen((const char*)uartTxBuffer));
+    // spin here, waiting for timer and UART to complete
+    while (isUSARTTxComplete == false); // wait for print to finish
+    /* reset it for the next print */
+    isUSARTTxComplete = false;
+#endif
+}
 
 // return failure count. A return value of 0 means everything passed.
 static int testResult(int testNum, 
@@ -154,9 +181,15 @@ static int testResult(int testNum,
     uint32_t myA = 0;
     uint32_t myB = 0;
     // unpack A
-    myA = ((int32_t) (packedValue))/2^16;
+    myA = packedValue>>16;
+    uint32_t aSignBit = myA & 0x8000;
+    if (aSignBit != 0)
+    {
+        myA = myA | 0xFFFF8000;
+    }
+    
     uint32_t bSignBit = packedValue & 0x8000;
-    if (bSignBit == 1)
+    if (bSignBit != 0)
     {
         myB = packedValue | 0xFFFF8000;
     }
@@ -195,10 +228,10 @@ static int testResult(int testNum,
             "========= Test Number: %d =========\r\n"
             "a_value pass/fail:  %s\r\n"
             "b_value pass/fail:  %s\r\n"
-            "debug values   expected     actual\r\n"
-            "packed_value:..0x%8lu\r\n"
-            "a_value:.......0x%8lu    0x%8lu\r\n"
-            "b_value:.......0x%8lu    0x%8lu\r\n"
+            "debug values     expected       actual\r\n"
+            "packed_value:..0x%08lx      (NA)\r\n"
+            "a_value:.......0x%08lx    0x%08lx\r\n"
+            "b_value:.......0x%08lx    0x%08lx\r\n"
             "\r\n",
             testNum,
             aCheck, 
@@ -252,8 +285,16 @@ int main ( void )
     int32_t totalFailCount = 0;
     // int32_t x1 = sizeof(tc);
     // int32_t x2 = sizeof(tc[0]);
-    uint32_t numTestCases = sizeof(tc)/sizeof(tc[0]);
+    uint32_t x1 = sizeof(tc);
+    uint32_t x2 = sizeof(tc[0]);
+    uint32_t numTestCases = x1/x2;
     
+    // set to true to execute for debug
+    if(false)
+    {
+        printInts(x1,x2,numTestCases,0);
+    }
+            
     // Loop forever
     while ( true )
     {
@@ -270,10 +311,11 @@ int main ( void )
             // STUDENTS:
             // !!!! THIS IS WHERE YOUR ASSEMBLY LANGUAGE PROGRAM GETS CALLED!!!!
             // Call our assembly function defined in file asmFunc.s
-            asmFunc(tc[testCase]);
+            uint32_t input = tc[testCase];
+            asmFunc(input);
             
             // test the result and see if it passed
-            failCount = testResult(testCase,tc[testCase],
+            failCount = testResult(testCase,input,
                                    &passCount,&failCount);
             totalPassCount = totalPassCount + passCount;
             totalFailCount = totalFailCount + failCount;
@@ -294,7 +336,9 @@ int main ( void )
         // terminal hooked up in time.
         uint32_t idleCount = 1;
         uint32_t totalTests = totalPassCount + totalFailCount;
+#if USING_HW 
         bool firstTime = true;
+#endif
         while(true)      // post-test forever loop
         {
             isRTCExpired = false;
