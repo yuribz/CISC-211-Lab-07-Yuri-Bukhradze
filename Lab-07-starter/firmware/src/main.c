@@ -79,7 +79,7 @@ static char * fail = "FAIL";
 //
 // Function signature
 // for this lab, the function takes one arg (amount), and returns the balance
-extern uint32_t asmFunc(uint32_t);
+extern void asmFunc(uint32_t);
 
 
 extern uint32_t a_value;
@@ -114,18 +114,12 @@ static void printGlobalAddresses(void)
     // build the string to be sent out over the serial lines
     snprintf((char*)uartTxBuffer, MAX_PRINT_LEN,
             "========= GLOBAL VARIABLES MEMORY ADDRESS LIST\r\n"
-            "global variable \"dividend\" stored at address:          0x%" PRIXPTR "\r\n"
-            "global variable \"divisor\" stored at address:           0x%" PRIXPTR "\r\n"
-            "global variable \"quotient\" stored at address:          0x%" PRIXPTR "\r\n"
-            "global variable \"mod\" stored at address:               0x%" PRIXPTR "\r\n"
-            "global variable \"we_have_a_problem\" stored at address: 0x%" PRIXPTR "\r\n"
+            "global variable \"a_value\" stored at address:          0x%" PRIXPTR "\r\n"
+            "global variable \"b_value\" stored at address:           0x%" PRIXPTR "\r\n"
             "========= END -- GLOBAL VARIABLES MEMORY ADDRESS LIST\r\n"
             "\r\n",
-            (uintptr_t)(&dividend), 
-            (uintptr_t)(&divisor), 
-            (uintptr_t)(&quotient), 
-            (uintptr_t)(&mod),  
-            (uintptr_t)(&we_have_a_problem)
+            (uintptr_t)(&a_value), 
+            (uintptr_t)(&b_value)
             ); 
     isRTCExpired = false;
     isUSARTTxComplete = false;
@@ -144,7 +138,7 @@ static void printGlobalAddresses(void)
 
 // return failure count. A return value of 0 means everything passed.
 static int testResult(int testNum, 
-                      uint32_t r0quotientAddr, 
+                      uint32_t packedValue, 
                       int32_t *passCount,
                       int32_t *failCount)
 {
@@ -153,129 +147,65 @@ static int testResult(int testNum,
     // So I'm setting it up this way so it'll work for future labs, too --VB
     *failCount = 0;
     *passCount = 0;
-    char *errCheck = "OOPS";
-    char *quotientCheck = "OOPS";
-    char *dividendCheck = "OOPS";
-    char *divisorCheck = "OOPS";
-    char *modCheck = "OOPS";
-    char *addrCheck = "OOPS";
+    char *aCheck = "OOPS";
+    char *bCheck = "OOPS";
     // static char *s2 = "OOPS";
     // static bool firstTime = true;
-    uint32_t myErr = 0;
-    uint32_t myDiv = 0;
-    uint32_t myMod = 0;
-    if ((tc[testNum][0] == 0) || (tc[testNum][1] == 0))
+    uint32_t myA = 0;
+    uint32_t myB = 0;
+    // unpack A
+    myA = ((int32_t) (packedValue))/2^16;
+    uint32_t bSignBit = packedValue & 0x8000;
+    if (bSignBit == 1)
     {
-        myErr = 1;
+        myB = packedValue | 0xFFFF8000;
     }
     else
     {
-        myDiv = tc[testNum][0] / tc[testNum][1];
-        myMod = tc[testNum][0] % tc[testNum][1];
+        myB = packedValue & 0x0000FFFF;
     }
 
-    // Check we_have_a_problem
-    if(myErr == we_have_a_problem)
+
+    // Check a_value
+    if(a_value == myA)
     {
         *passCount += 1;
-        errCheck = pass;
+        aCheck = pass;
     }
     else
     {
         *failCount += 1;
-        errCheck = fail;
+        aCheck = fail;
     }
 
-    // Check return of addr in r0
-    if((uintptr_t)&quotient == (uintptr_t)r0quotientAddr)
+    // Check b_value
+    if(b_value == myB)
     {
         *passCount += 1;
-        addrCheck = pass;
+        bCheck = pass;
     }
     else
     {
         *failCount += 1;
-        addrCheck = fail;
+        bCheck = fail;
     }
-
-    // Check mem value of dividend
-    if(dividend == tc[testNum][0])
-    {
-        *passCount += 1;
-        dividendCheck = pass;
-    }
-    else
-    {
-        *failCount += 1;
-        dividendCheck = fail;
-    }
-    
-    // Check mem value of divisor
-    if(divisor == tc[testNum][1])
-    {
-        *passCount += 1;
-        divisorCheck = pass;
-    }
-    else
-    {
-        *failCount += 1;
-        divisorCheck = fail;
-    }
-    
-    // Check calculation of quotient
-    if(quotient == myDiv)
-    {
-        *passCount += 1;
-        quotientCheck = pass;
-    }
-    else
-    {
-        *failCount += 1;
-        quotientCheck = fail;
-    }
-    
-    // Check calculation of modulus
-    if(myMod == mod)
-    {
-        *passCount += 1;
-        modCheck = pass;
-    }
-    else
-    {
-        *failCount += 1;
-        modCheck = fail;
-    }
-    
-           
+          
     // build the string to be sent out over the serial lines
     snprintf((char*)uartTxBuffer, MAX_PRINT_LEN,
             "========= Test Number: %d =========\r\n"
-            "test case INPUT: dividend:  %11lu\r\n"
-            "test case INPUT: divisor:   %11lu\r\n"
-            "error check pass/fail:         %s\r\n"
-            "addr check pass/fail:          %s\r\n"
-            "dividend mem value pass/fail:  %s\r\n"
-            "divisor mem value pass/fail:   %s\r\n"
-            "quotient mem value pass/fail:  %s\r\n"
-            "modulus mem value pass/fail:   %s\r\n"
-            "debug values            expected        actual\r\n"
-            "dividend:...........%11lu   %11lu\r\n"
-            "divisor:............%11lu   %11lu\r\n"
-            "quotient:...........%11lu   %11lu\r\n"
-            "mod:................%11lu   %11lu\r\n"
-            "we_have_a_problem:..%11lu   %11lu\r\n"
-            "quotient addr check: 0x%08" PRIXPTR "    0x%08" PRIXPTR "\r\n"
+            "a_value pass/fail:  %s\r\n"
+            "b_value pass/fail:  %s\r\n"
+            "debug values   expected     actual\r\n"
+            "packed_value:..0x%8lu\r\n"
+            "a_value:.......0x%8lu    0x%8lu\r\n"
+            "b_value:.......0x%8lu    0x%8lu\r\n"
             "\r\n",
             testNum,
-            tc[testNum][0],
-            tc[testNum][1],
-            errCheck, addrCheck, dividendCheck, divisorCheck, quotientCheck, modCheck,
-            tc[testNum][0], dividend,
-            tc[testNum][1], divisor,
-            myDiv, quotient,
-            myMod, mod,
-            myErr, we_have_a_problem,
-            (uintptr_t)(&quotient), (uintptr_t) r0quotientAddr
+            aCheck, 
+            bCheck,
+            packedValue,
+            myA, a_value,
+            myB, b_value
             );
 
 #if USING_HW 
@@ -337,18 +267,13 @@ int main ( void )
             isRTCExpired = false;
             isUSARTTxComplete = false;
             
-            // set the dividend in r0
-            uint32_t myDividend = tc[testCase][0];
-            // set the divisor in r1
-            uint32_t myDivisor  = tc[testCase][1];
-
             // STUDENTS:
             // !!!! THIS IS WHERE YOUR ASSEMBLY LANGUAGE PROGRAM GETS CALLED!!!!
             // Call our assembly function defined in file asmFunc.s
-            uint32_t quotAddr = asmFunc(myDividend, myDivisor);
+            asmFunc(tc[testCase]);
             
             // test the result and see if it passed
-            failCount = testResult(testCase,quotAddr,
+            failCount = testResult(testCase,tc[testCase],
                                    &passCount,&failCount);
             totalPassCount = totalPassCount + passCount;
             totalFailCount = totalFailCount + failCount;
